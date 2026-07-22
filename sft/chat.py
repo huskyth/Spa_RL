@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 import argparse
 import sys
+import pathlib
+p = pathlib.Path(__file__).parent.parent
+if str(p) not in sys.path:
+    sys.path.append(str(p))
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from peft import PeftModel
