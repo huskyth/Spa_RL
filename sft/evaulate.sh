@@ -8,3 +8,5 @@ python sft/evaluate.py \
     --save_generations \
     --max_new_tokens 2048 \
     --generations_file my_generations.json
+
+
