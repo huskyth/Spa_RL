@@ -15,15 +15,19 @@ model_path="./models/Llama-3.2-3B-Instruct"
 python -m fastchat.train.train_lora_llama \
     --model_name_or_path ${model_path} \
     --data_path data/webshop_sft_train.json \
+    --eval_data_path data/webshop_sft_test.json \
     --fp16 True \
     --output_dir ckpt/llama3b_webshop_sft \
     --num_train_epochs 2 \
     --per_device_train_batch_size 4 \
-    --per_device_eval_batch_size 1 \
+    --per_device_eval_batch_size 4 \
     --gradient_accumulation_steps 1 \
-    --evaluation_strategy "no" \
+    --evaluation_strategy "steps" \
+    --eval_steps 100 \
     --save_strategy "no" \
     --save_steps=100 \
+    --load_best_model_at_end \
+    --greater_is_better False \
     --save_total_limit 5 \
     --learning_rate 2e-4 \
     --weight_decay 0. \
@@ -34,8 +38,6 @@ python -m fastchat.train.train_lora_llama \
     --model_max_length 2048 \
     --gradient_checkpointing True \
     --lazy_preprocess True \
-    --per_device_train_batch_size 1 \
-    --per_device_eval_batch_size 1 \
     --gradient_accumulation_steps 1 \
     --flash_attn True \
     --lora_r 8 \
