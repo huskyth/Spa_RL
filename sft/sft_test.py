@@ -62,16 +62,27 @@ print(f"成功加载 {len(texts)} 条测试样本")
 # ================== 4. 构建 Dataset ==================
 dataset = Dataset.from_dict({"text": texts})
 
+
 def tokenize_function(examples):
     tokenized = tokenizer(
         examples["text"],
         truncation=True,
-        padding="max_length",
+        padding="max_length",  # 固定填充到 2048
         max_length=MAX_LENGTH,
         return_tensors=None,
     )
-    # 添加 labels（用于计算损失）
-    tokenized["labels"] = tokenized["input_ids"].copy()
+
+    # 关键修正：创建 labels，并将 PAD 位置设为 -100（忽略）
+    labels = tokenized["input_ids"].copy()
+    pad_token_id = tokenizer.pad_token_id
+
+    # 将所有 PAD Token 替换为 -100
+    labels = [
+        [(token if token != pad_token_id else -100) for token in label]
+        for label in labels
+    ]
+
+    tokenized["labels"] = labels
     return tokenized
 
 tokenized_dataset = dataset.map(
