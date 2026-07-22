@@ -10,7 +10,7 @@ BASE_MODEL_PATH = "../models/Llama-3.2-3B-Instruct"
 LORA_PATH = "../ckpt/llama3b_webshop_sft/checkpoint-1000"
 TEST_DATA_PATH = "data/webshop_sft_test.json"
 MAX_LENGTH = 2048
-EVAL_BATCH_SIZE = 8
+EVAL_BATCH_SIZE = 4
 OUTPUT_DIR = "./eval_results"
 
 # ================== 1. 加载分词器 ==================
