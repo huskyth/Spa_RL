@@ -5,8 +5,8 @@ from transformers import Trainer, TrainingArguments
 import torch
 
 # 1. 加载你训练好的最优 LoRA 模型
-base_model = AutoModelForCausalLM.from_pretrained("./models/Llama-3.2-3B-Instruct", torch_dtype=torch.float16)
-model = PeftModel.from_pretrained(base_model, "ckpt/llama3b_webshop_sft")  # 这里就是最优的
+base_model = AutoModelForCausalLM.from_pretrained("../models/Llama-3.2-3B-Instruct", torch_dtype=torch.float16)
+model = PeftModel.from_pretrained(base_model, "../ckpt/llama3b_webshop_sft")  # 这里就是最优的
 
 # 2. 加载你的真实测试集（假设是 json 格式，已预处理）
 # 注意：测试集不需要梯度，batch_size 可以设大一点
