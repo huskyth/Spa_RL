@@ -14,7 +14,7 @@ model_path="./models/Llama-3.2-3B-Instruct"
 
 python -m fastchat.train.train_lora_llama \
     --model_name_or_path ${model_path} \
-    --data_path data/webshop_sft.json \
+    --data_path data/webshop_sft_train.json \
     --fp16 True \
     --output_dir ckpt/llama3b_webshop_sft \
     --num_train_epochs 1 \
