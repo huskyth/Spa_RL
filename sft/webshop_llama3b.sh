@@ -18,7 +18,7 @@ python -m fastchat.train.train_lora_llama \
     --fp16 True \
     --output_dir ckpt/llama3b_webshop_sft \
     --num_train_epochs 1 \
-    --per_device_train_batch_size 1 \
+    --per_device_train_batch_size 4 \
     --per_device_eval_batch_size 1 \
     --gradient_accumulation_steps 1 \
     --evaluation_strategy "no" \
@@ -41,7 +41,8 @@ python -m fastchat.train.train_lora_llama \
     --lora_r 8 \
     --lora_alpha 16 \
     --lora_dropout 0.05 \
-    --lora_bias "none"
+    --lora_bias "none" \
+    --report_to "wandb"
 
 # if failed, exit
 if [ $? -ne 0 ]; then
