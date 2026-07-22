@@ -216,3 +216,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+*.zip
+*.whl
+*.json
+envs/webshop/search_index
+models
