@@ -2,8 +2,12 @@ import argparse
 import json
 import math
 import pathlib
+import sys
 from dataclasses import dataclass, field
 from typing import Dict, Optional, Sequence
+p = pathlib.Path(__file__).parent.parent
+if str(p) not in sys.path:
+    sys.path.append(str(p))
 
 import torch
 import transformers
