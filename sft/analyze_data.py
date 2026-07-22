@@ -81,7 +81,7 @@ def analyze_dataset(data):
             # 打印样例
             print(f"\n前 {SAMPLE_COUNT} 个样例:")
             for i, s in enumerate(samples[:SAMPLE_COUNT]):
-                print(f"\n--- 样本 {i+1} ---")
+                print(f"\n--- 样本A {i+1} ---")
                 print(f"指令: {s.get('instruction', '')[:200]}...")
                 print(f"输出: {s.get('output', '')[:200]}...")
         else:
@@ -94,7 +94,7 @@ def analyze_dataset(data):
                     print(f"  {key} 平均长度: {sum(lens)/len(lens):.1f}, 最小 {min(lens)}, 最大 {max(lens)}")
             print(f"\n前 {SAMPLE_COUNT} 个样例:")
             for i, s in enumerate(samples[:SAMPLE_COUNT]):
-                print(f"\n--- 样本 {i+1} ---")
+                print(f"\n--- 样本B {i+1} ---")
                 print(json.dumps(s, indent=2, ensure_ascii=False)[:500])
         return
 
@@ -138,16 +138,18 @@ def analyze_dataset(data):
     # 6. 打印样例对话
     print(f"\n前 {SAMPLE_COUNT} 条对话样例:")
     for i, s in enumerate(samples[:SAMPLE_COUNT]):
-        print(f"\n--- 样本 {i+1} ---")
+        print(f"\n--- 样本C {i+1} ---")
         conv = s.get(conv_key, [])
         if isinstance(conv, list):
             for msg in conv:
                 role = msg.get('role', msg.get('from', 'unknown'))
                 content = msg.get('content', msg.get('text', msg.get('value', '')))
-                print(f"{role}: {str(content)[:300]}...")
+                t = str(content).replace('\n', '')
+                print(f"{role}: {t}")
         elif isinstance(conv, dict):
             for role, content in conv.items():
-                print(f"{role}: {str(content)[:300]}...")
+                t = str(content).replace('\n', '')
+                print(f"{role}: {t}")
         else:
             print(conv)
 
