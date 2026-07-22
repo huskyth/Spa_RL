@@ -222,3 +222,4 @@ __marimo__/
 *.json
 envs/webshop/search_index
 models
+ckpt
