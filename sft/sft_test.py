@@ -8,6 +8,10 @@ import torch
 base_model = AutoModelForCausalLM.from_pretrained("../models/Llama-3.2-3B-Instruct", torch_dtype=torch.float16)
 model = PeftModel.from_pretrained(base_model, "../ckpt/llama3b_webshop_sft")  # 这里就是最优的
 
+tokenizer = AutoTokenizer.from_pretrained("../models/Llama-3.2-3B-Instruct")
+if tokenizer.pad_token is None:
+    tokenizer.pad_token = tokenizer.eos_token   # Llama 通常设置 eos 为 pad
+
 # 2. 加载你的真实测试集（假设是 json 格式，已预处理）
 # 注意：测试集不需要梯度，batch_size 可以设大一点
 test_dataset = load_dataset("json", data_files="data/webshop_sft_test.json")  # 替换路径
