@@ -1,3 +1,4 @@
+from datasets import load_dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import PeftModel
 from transformers import Trainer, TrainingArguments
@@ -9,7 +10,7 @@ model = PeftModel.from_pretrained(base_model, "ckpt/llama3b_webshop_sft")  # 这
 
 # 2. 加载你的真实测试集（假设是 json 格式，已预处理）
 # 注意：测试集不需要梯度，batch_size 可以设大一点
-test_dataset = load_dataset("json", data_files="data/real_holdout_test.json")  # 替换路径
+test_dataset = load_dataset("json", data_files="data/webshop_sft_test.json")  # 替换路径
 
 # 3. 设置评估参数（仅推理）
 eval_args = TrainingArguments(
