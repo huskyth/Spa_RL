@@ -18,7 +18,7 @@ python -m fastchat.train.train_lora_llama \
     --eval_data_path data/webshop_sft_test.json \
     --fp16 True \
     --output_dir ckpt/llama3b_webshop_sft \
-    --num_train_epochs 2 \
+    --num_train_epochs 5 \
     --per_device_train_batch_size 4 \
     --per_device_eval_batch_size 4 \
     --gradient_accumulation_steps 1 \

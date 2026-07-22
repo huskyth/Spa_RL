@@ -3,7 +3,7 @@ import os
 from collections import Counter, defaultdict
 
 # ===== 配置 =====
-DATA_PATH = "data/webshop_sft_train.json"          # 数据集路径
+DATA_PATH = "data/webshop_sft_test.json"          # 数据集路径
 SAMPLE_COUNT = 3                            # 打印样例个数
 # =================
 
