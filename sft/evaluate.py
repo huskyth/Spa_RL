@@ -5,6 +5,7 @@ import pathlib
 import sys
 from dataclasses import dataclass, field
 from typing import Dict, Optional, Sequence
+
 p = pathlib.Path(__file__).parent.parent
 if str(p) not in sys.path:
     sys.path.append(str(p))
@@ -23,7 +24,7 @@ from fastchat.model.model_adapter import get_conversation_template, get_model_ad
 IGNORE_TOKEN_ID = LabelSmoother.ignore_index
 
 
-# ---------------------------- 复制训练代码中的预处理函数和数据类 ----------------------------
+# ---------------------------- 数据预处理（与训练完全一致） ----------------------------
 @dataclass
 class ModelArguments:
     model_name_or_path: Optional[str] = field(default="facebook/opt-125m")
@@ -195,9 +196,10 @@ class SupervisedDataset(torch.utils.data.Dataset):
 
 
 def load_eval_dataset(data_path, tokenizer, model_path):
-    """加载测试集并返回 Dataset 对象"""
+    """加载测试集并返回 Dataset 对象和原始数据列表"""
     raw_data = json.load(open(data_path, "r"))
-    return SupervisedDataset(raw_data, tokenizer, model_path)
+    dataset = SupervisedDataset(raw_data, tokenizer, model_path)
+    return dataset, raw_data
 
 
 # ---------------------------- 主评估函数 ----------------------------
@@ -217,6 +219,13 @@ def evaluate():
                         help="Directory to save evaluation results (optional)")
     parser.add_argument("--flash_attn", action="store_true", default=False,
                         help="Use FlashAttention if available")
+    # 新增生成相关参数
+    parser.add_argument("--save_generations", action="store_true",
+                        help="Save model generations for each test sample")
+    parser.add_argument("--max_new_tokens", type=int, default=128,
+                        help="Max tokens to generate per sample")
+    parser.add_argument("--generations_file", type=str, default="generations.json",
+                        help="Filename for saving generations (under output_dir)")
     args = parser.parse_args()
 
     # 1. 加载 tokenizer
@@ -254,27 +263,28 @@ def evaluate():
     model.eval()
     print(f"Loaded LoRA adapter from {args.lora_adapter_path}")
 
-    # 4. 准备测试数据集
-    test_dataset = load_eval_dataset(args.test_data_path, tokenizer, args.base_model_name_or_path)
+    # 4. 准备测试数据集（同时保留原始数据用于记录）
+    test_dataset, raw_data = load_eval_dataset(
+        args.test_data_path, tokenizer, args.base_model_name_or_path
+    )
 
     # 5. 设置 TrainingArguments 用于 Trainer
     eval_args = TrainingArguments(
         output_dir=args.output_dir,
         per_device_eval_batch_size=args.batch_size,
         dataloader_drop_last=False,
-        remove_unused_columns=False,
-        report_to=None,  # 不记录到 wandb/tensorboard
+        remove_unused_columns=False,   # 保留额外字段（虽然我们不添加）
+        report_to=None,
         run_name="eval_run",
     )
 
-    # 6. 创建 Trainer 并评估
+    # 6. 创建 Trainer 并评估（获得整体损失）
     trainer = Trainer(
         model=model,
         args=eval_args,
         tokenizer=tokenizer,
         eval_dataset=test_dataset,
     )
-    # 计算损失
     eval_results = trainer.evaluate()
     test_loss = eval_results.get("eval_loss", None)
     if test_loss is not None:
@@ -285,6 +295,76 @@ def evaluate():
         print(f"========================================")
     else:
         print("Error: eval_loss not found in evaluation results.")
+
+    # 7. 如果指定了保存生成结果，则进行生成
+    if args.save_generations:
+        print("Generating responses for each test sample...")
+        # 准备 DataLoader（shuffle=False）
+        dataloader = DataLoader(
+            test_dataset,
+            batch_size=args.batch_size,
+            shuffle=False,
+            collate_fn=lambda batch: {
+                "input_ids": torch.stack([b["input_ids"] for b in batch]),
+                "attention_mask": torch.stack([b["attention_mask"] for b in batch]),
+                "indices": list(range(len(batch))),  # 记录原始索引
+            }
+        )
+
+        generations = []
+        with torch.no_grad():
+            for batch_idx, batch in enumerate(dataloader):
+                input_ids = batch["input_ids"].to(model.device)
+                attention_mask = batch["attention_mask"].to(model.device)
+                indices = batch["indices"]
+
+                # 对每个样本单独生成（避免批次内 padding 干扰）
+                for i, idx in enumerate(indices):
+                    # 提取有效 token（去除 padding）
+                    seq_len = attention_mask[i].sum().item()
+                    prompt_ids = input_ids[i, :seq_len].unsqueeze(0)  # (1, seq_len)
+
+                    # 生成
+                    generated_ids = model.generate(
+                        prompt_ids,
+                        max_new_tokens=args.max_new_tokens,
+                        do_sample=False,          # 贪心解码
+                        eos_token_id=tokenizer.eos_token_id,
+                        pad_token_id=tokenizer.pad_token_id,
+                        repetition_penalty=1.0,
+                    )
+                    # 解码生成的 token（去除 prompt 部分）
+                    response_ids = generated_ids[0, seq_len:]
+                    response_text = tokenizer.decode(response_ids, skip_special_tokens=True)
+
+                    # 记录结果
+                    generations.append({
+                        "index": idx,
+                        "conversations": raw_data[idx]["conversations"],  # 原始对话
+                        "generated_response": response_text,
+                    })
+                # 可选打印进度
+                if (batch_idx + 1) % 10 == 0:
+                    print(f"Processed {batch_idx + 1} batches")
+
+        # 保存生成结果
+        output_path = pathlib.Path(args.output_dir) / args.generations_file
+        with open(output_path, "w") as f:
+            json.dump(generations, f, indent=2, ensure_ascii=False)
+        print(f"Generations saved to {output_path}")
+
+    # 额外保存一个包含整体损失和生成文件路径的摘要（可选）
+    summary = {
+        "test_loss": test_loss,
+        "perplexity": perplexity if test_loss is not None else None,
+        "generations_saved": args.save_generations,
+    }
+    if args.save_generations:
+        summary["generations_file"] = str(pathlib.Path(args.output_dir) / args.generations_file)
+    summary_path = pathlib.Path(args.output_dir) / "eval_summary.json"
+    with open(summary_path, "w") as f:
+        json.dump(summary, f, indent=2)
+    print(f"Evaluation summary saved to {summary_path}")
 
 
 if __name__ == "__main__":

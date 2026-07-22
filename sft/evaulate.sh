@@ -4,4 +4,7 @@ python sft/evaluate.py \
     --test_data_path 'data/webshop_sft_test.json' \
     --model_max_length 2048 \
     --batch_size 4 \
-    --flash_attn  # 如果训练时使用了 FlashAttention，评估时建议保持一致
+    --flash_attn \
+    --save_generations \
+    --max_new_tokens 2048 \
+    --generations_file my_generations.json
