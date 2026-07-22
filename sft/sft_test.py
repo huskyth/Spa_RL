@@ -1,9 +1,16 @@
+import sys
+
 import torch
 import json
 from typing import Dict
 from transformers import AutoTokenizer, AutoModelForCausalLM, Trainer, TrainingArguments
 from peft import PeftModel
 from datasets import Dataset
+from pathlib import Path
+p = Path(__file__).parent.parent
+if str(p) not in sys.path:
+    sys.path.append(str(p))
+
 from fastchat.model.model_adapter import get_model_adapter
 from transformers.trainer_pt_utils import LabelSmoother
 
