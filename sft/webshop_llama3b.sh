@@ -24,7 +24,7 @@ python -m fastchat.train.train_lora_llama \
     --gradient_accumulation_steps 1 \
     --evaluation_strategy "steps" \
     --eval_steps 100 \
-    --save_strategy "no" \
+    --save_strategy "steps" \
     --save_steps=100 \
     --load_best_model_at_end \
     --greater_is_better False \
