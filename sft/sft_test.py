@@ -91,7 +91,7 @@ def preprocess(sources, tokenizer, model_path: str) -> Dict:
 
 # ================== 主评估脚本 ==================
 BASE_MODEL_PATH = "../models/Llama-3.2-3B-Instruct"
-LORA_PATH = "../ckpt/llama3b_webshop_sft"  # 训练好的最优 LoRA
+LORA_PATH = "../ckpt/llama3b_webshop_sft/checkpoint-1000"  # 训练好的最优 LoRA
 TEST_DATA_PATH = "data/webshop_sft_test.json"  # 你的测试集
 MAX_LENGTH = 2048
 EVAL_BATCH_SIZE = 8
