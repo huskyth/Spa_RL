@@ -1,4 +1,4 @@
-python exploration/generate_response_webshop.py \
+python exploration/webshop/generate_response_webshop.py \
     --agent_config fastchat_explore \
     --iteration_num 3 \
     --exp_config webshop \
