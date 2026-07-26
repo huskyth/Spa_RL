@@ -1,7 +1,10 @@
 import os
-
+import sys
 os.environ["OPENAI_API_KEY"] = ""
-
+import pathlib
+p = pathlib.Path(__file__).parent.parent.parent
+if str(p) not in sys.path:
+    sys.path.append(str(p))
 import json
 import logging
 import pathlib
