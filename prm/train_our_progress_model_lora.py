@@ -465,7 +465,8 @@ training_args = TrainingArguments(
     fp16=False,
     save_safetensors=False,  # Disable safetensors saving
     gradient_accumulation_steps=1,  # Set gradient accumulation steps
-    max_grad_norm=1.0
+    max_grad_norm=1.0,
+    report_to='wandb'
 )
 
 # Create Trainer
