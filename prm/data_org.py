@@ -3,9 +3,11 @@
 import os
 import json
 import glob
+from pathlib import Path
 
+cr = Path(__file__).parent.parent
 # Define target directory
-explore_dir = "exploration/webshop/exploration_outputs/explore"
+explore_dir = cr / "exploration/webshop/exploration_outputs/explore"
 
 # Use glob to collect all json files
 json_files = glob.glob(os.path.join(explore_dir, "*.json"))
@@ -71,11 +73,11 @@ for each_item in our_data:
     })
     
 # Save data to json file
-with open("exploration/webshop/exploration_outputs/exploration.json", "w") as f:
+with open(cr / "exploration/webshop/exploration_outputs/exploration.json", "w") as f:
     json.dump(saved_data, f, indent=4)
 print("Data has been saved to json file")
 
 
-with open("exploration/webshop/exploration_outputs/exploration_tiny.json", "w") as f:
+with open(cr / "exploration/webshop/exploration_outputs/exploration_tiny.json", "w") as f:
     json.dump(saved_data[:100], f, indent=4)
 print("Data has been saved to json file")
