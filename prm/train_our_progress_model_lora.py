@@ -445,7 +445,7 @@ print(f"可训练参数数量: {len(trainable_params)}")
 # Define training parameters
 print("Configuring training parameters...")
 training_args = TrainingArguments(
-    output_dir="./records/progress_model_virtualhome",
+    output_dir="./records/progress_model_webshop",
     num_train_epochs=15,
     per_device_train_batch_size=1,
     per_device_eval_batch_size=1,
@@ -456,7 +456,7 @@ training_args = TrainingArguments(
     evaluation_strategy="epoch",
     eval_steps=100,
     save_strategy="epoch",  # Save by epoch
-    # save_total_limit=1,  # Only save last checkpoint
+    save_total_limit=2,  # Only save last checkpoint
     load_best_model_at_end=True,
     metric_for_best_model="accuracy",
     greater_is_better=True,
