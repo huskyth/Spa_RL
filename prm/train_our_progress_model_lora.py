@@ -404,9 +404,9 @@ class SupervisedDataset(Dataset):
             labels=self.labels[i]
         )
 
-train_data = json.load(open("exploration/webshop/exploration_outputs/exploration.json", "r"))
-val_data = json.load(open("exploration/webshop/exploration_outputs/exploration_tiny.json", "r"))
-test_data = json.load(open("exploration/webshop/exploration_outputs/exploration_tiny.json", "r"))
+train_data = json.load(open("exploration/webshop/exploration_outputs/train_prm.json", "r"))
+val_data = json.load(open("exploration/webshop/exploration_outputs/test_prm.json", "r"))
+test_data = json.load(open("exploration/webshop/exploration_outputs/test_prm.json", "r"))
 
 # Small batch data trial
 # train_data = train_data[:100]
@@ -446,19 +446,19 @@ print(f"可训练参数数量: {len(trainable_params)}")
 print("Configuring training parameters...")
 training_args = TrainingArguments(
     output_dir="./records/progress_model_virtualhome",
-    num_train_epochs=10,
+    num_train_epochs=15,
     per_device_train_batch_size=1,
     per_device_eval_batch_size=1,
     warmup_steps=50,
     weight_decay=0.01,
     logging_dir='./logs',
     logging_steps=10,
-    evaluation_strategy="no",
-    # eval_steps=1,
-    save_strategy="no",  # Save by epoch
+    evaluation_strategy="steps",
+    eval_steps=100,
+    save_strategy="epoch",  # Save by epoch
     # save_total_limit=1,  # Only save last checkpoint
-    # load_best_model_at_end=True,
-    # metric_for_best_model="accuracy",
+    load_best_model_at_end=True,
+    metric_for_best_model="accuracy",
     greater_is_better=True,
     learning_rate=5e-6,
     bf16=True,
