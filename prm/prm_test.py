@@ -11,6 +11,13 @@ import numpy as np
 from tqdm import tqdm
 from torch.utils.data import DataLoader, Dataset
 from transformers import AutoTokenizer, AutoModelForCausalLM, PreTrainedModel
+
+import sys
+import pathlib
+p = pathlib.Path(__file__).parent.parent
+if str(p) not in sys.path:
+    sys.path.append(str(p))
+
 from fastchat.model.model_adapter import get_model_adapter
 from fastchat.conversation import SeparatorStyle
 from transformers.trainer_pt_utils import LabelSmoother
