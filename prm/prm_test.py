@@ -4,7 +4,6 @@ import pathlib
 p = pathlib.Path(__file__).parent.parent
 if str(p) not in sys.path:
     sys.path.append(str(p))
-
 # eval_prm_from_checkpoint.py
 import os
 
@@ -23,11 +22,12 @@ from fastchat.model.model_adapter import get_model_adapter
 from fastchat.conversation import SeparatorStyle
 from transformers.trainer_pt_utils import LabelSmoother
 from typing import Dict
+import glob
 
 IGNORE_TOKEN_ID = LabelSmoother.ignore_index
 
 
-# ---------- 模型定义（与训练代码完全一致） ----------
+# ---------- 模型定义（与训练代码一致） ----------
 class prm_model(PreTrainedModel):
     def __init__(self, base_model, vocab_size=32000):
         super().__init__(base_model.config)
@@ -178,15 +178,52 @@ def evaluate(model, dataloader, device):
     return {'mse': float(mse), 'mae': float(mae), 'accuracy': float(acc)}
 
 
+# ---------- 辅助：加载分片权重 ----------
+def load_sharded_state_dict(checkpoint_dir):
+    # 尝试单个文件
+    single_file = os.path.join(checkpoint_dir, "pytorch_model.bin")
+    if os.path.exists(single_file):
+        return torch.load(single_file, map_location="cpu")
+
+    # 尝试 safetensors
+    safetensors_file = os.path.join(checkpoint_dir, "model.safetensors")
+    if os.path.exists(safetensors_file):
+        from safetensors.torch import load_file
+        return load_file(safetensors_file)
+
+    # 尝试分片 .bin 文件
+    shard_files = glob.glob(os.path.join(checkpoint_dir, "pytorch_model-*.bin"))
+    if shard_files:
+        shard_files.sort()  # 按名称排序
+        state_dict = {}
+        for shard_file in shard_files:
+            shard = torch.load(shard_file, map_location="cpu")
+            state_dict.update(shard)
+        return state_dict
+
+    # 尝试分片 .safetensors
+    shard_files = glob.glob(os.path.join(checkpoint_dir, "model-*.safetensors"))
+    if shard_files:
+        from safetensors.torch import load_file
+        shard_files.sort()
+        state_dict = {}
+        for shard_file in shard_files:
+            shard = load_file(shard_file)
+            state_dict.update(shard)
+        return state_dict
+
+    raise FileNotFoundError(f"在 {checkpoint_dir} 中找不到任何权重文件")
+
+
 # ---------- 主程序 ----------
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--base_model_path", type=str, required=True,
-                        help="ckpt/llama3b_webshop_sft_loramerged）")
+                        help="路径：原始 SFT 后的模型（如 ckpt/llama3b_webshop_sft_loramerged）")
     parser.add_argument("--checkpoint_path", type=str, required=True,
-                        help="records/progress_model_webshop/checkpoint-57465")
+                        help="训练保存的 checkpoint 目录（如 records/progress_model_webshop/checkpoint-57465）")
     parser.add_argument("--test_data", type=str, required=True,
-                        help="exploration/webshop/exploration_outputs/test_prm.json")
+                        help="测试数据 JSON 文件路径")
     parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--max_length", type=int, default=1024)
     parser.add_argument("--lora_r", type=int, default=8)
@@ -207,7 +244,6 @@ def main():
     base_model = AutoModelForCausalLM.from_pretrained(
         args.base_model_path, trust_remote_code=True, torch_dtype=torch.bfloat16
     )
-    # 冻结基础模型（和训练一致）
     for param in base_model.parameters():
         param.requires_grad = False
 
@@ -226,16 +262,10 @@ def main():
     vocab_size = base_model.config.vocab_size
     model = prm_model(lora_model, vocab_size)
 
-    # 4. 从 checkpoint 加载训练好的权重
-    state_dict_path = os.path.join(args.checkpoint_path, "pytorch_model.bin")
-    if not os.path.exists(state_dict_path):
-        # 可能保存为 model.safetensors，尝试另一种格式
-        state_dict_path = os.path.join(args.checkpoint_path, "model.safetensors")
-        if not os.path.exists(state_dict_path):
-            raise FileNotFoundError(f"找不到 checkpoint 权重文件，请检查 {args.checkpoint_path}")
-    print(f"Loading model weights from {state_dict_path}")
-    state_dict = torch.load(state_dict_path, map_location="cpu")
-    # 如果 state_dict 是 dict 包含 'model' 键，则取它（Trainer 有时会包装）
+    # 4. 从 checkpoint 加载训练好的权重（支持分片）
+    print(f"Loading model weights from {args.checkpoint_path}")
+    state_dict = load_sharded_state_dict(args.checkpoint_path)
+    # 如果 state_dict 包含 'model' 键，则取它（Trainer 有时会包装）
     if 'model' in state_dict:
         state_dict = state_dict['model']
     model.load_state_dict(state_dict, strict=True)
@@ -259,3 +289,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# python prm/prm_test.py --base_model_path ckpt/llama3b_webshop_sft_loramerged --checkpoint_path records/progress_model_webshop/checkpoint-57465 --test_data exploration/webshop/exploration_outputs/test_prm.json --batch_size 4
