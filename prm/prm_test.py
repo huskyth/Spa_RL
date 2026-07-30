@@ -199,7 +199,7 @@ def evaluate(model, dataloader, device):
 # ---------- 主程序 ----------
 def main():
     parser = argparse.ArgumentParser(description="Evaluate PRM model on test set")
-    parser.add_argument("--model_dir", type=str, default="records/progress_model_webshop/checkpoint-57465",
+    parser.add_argument("--model_dir", type=str, default="records/progress_model_webshop/",
                         help="Directory containing our_model_state.pt and our_base_model")
     parser.add_argument("--test_data", type=str, default="exploration/webshop/exploration_outputs/test_prm.json",
                         help="Path to test data JSON file (each line a JSON object)")
@@ -211,7 +211,7 @@ def main():
     print(f"Using device: {device}")
 
     # 加载 tokenizer 和 base model
-    base_model_path = os.path.join(args.model_dir, "our_base_model")
+    base_model_path = os.path.join(args.model_dir, "checkpoint-57465")
     print(f"Loading tokenizer and base model from {base_model_path}")
     tokenizer = AutoTokenizer.from_pretrained(base_model_path, trust_remote_code=True)
     if tokenizer.pad_token is None:
