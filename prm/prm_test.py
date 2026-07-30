@@ -199,9 +199,9 @@ def evaluate(model, dataloader, device):
 # ---------- 主程序 ----------
 def main():
     parser = argparse.ArgumentParser(description="Evaluate PRM model on test set")
-    parser.add_argument("--model_dir", type=str, default="records/progress_model_webshop/",
+    parser.add_argument("--model_dir", type=str, default=p / "records/progress_model_webshop/",
                         help="Directory containing our_model_state.pt and our_base_model")
-    parser.add_argument("--test_data", type=str, default="exploration/webshop/exploration_outputs/test_prm.json",
+    parser.add_argument("--test_data", type=str, default=p / "exploration/webshop/exploration_outputs/test_prm.json",
                         help="Path to test data JSON file (each line a JSON object)")
     parser.add_argument("--batch_size", type=int, default=8, help="Batch size for evaluation")
     parser.add_argument("--max_length", type=int, default=1024, help="Max sequence length")
