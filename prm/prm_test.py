@@ -1,4 +1,11 @@
-# eval_prm.py
+
+import sys
+import pathlib
+p = pathlib.Path(__file__).parent.parent
+if str(p) not in sys.path:
+    sys.path.append(str(p))
+
+# eval_prm_from_checkpoint.py
 import os
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -11,13 +18,7 @@ import numpy as np
 from tqdm import tqdm
 from torch.utils.data import DataLoader, Dataset
 from transformers import AutoTokenizer, AutoModelForCausalLM, PreTrainedModel
-
-import sys
-import pathlib
-p = pathlib.Path(__file__).parent.parent
-if str(p) not in sys.path:
-    sys.path.append(str(p))
-
+from peft import LoraConfig, get_peft_model
 from fastchat.model.model_adapter import get_model_adapter
 from fastchat.conversation import SeparatorStyle
 from transformers.trainer_pt_utils import LabelSmoother
@@ -26,7 +27,7 @@ from typing import Dict
 IGNORE_TOKEN_ID = LabelSmoother.ignore_index
 
 
-# ---------- 模型定义（与训练代码一致） ----------
+# ---------- 模型定义（与训练代码完全一致） ----------
 class prm_model(PreTrainedModel):
     def __init__(self, base_model, vocab_size=32000):
         super().__init__(base_model.config)
@@ -64,18 +65,11 @@ class prm_model(PreTrainedModel):
         if labels is not None:
             loss_fct = nn.MSELoss()
             loss = loss_fct(value_outputs, labels)
-        return {
-            'loss': loss,
-            'predictions': value_outputs
-        }
+        return {'loss': loss, 'predictions': value_outputs}
 
 
-# ---------- 数据预处理（仅保留 Llama-3.2 格式） ----------
-def preprocess(
-        sources,
-        tokenizer,
-        model_path: str,
-) -> Dict:
+# ---------- 数据预处理（仅 Llama-3.2 格式） ----------
+def preprocess(sources, tokenizer, model_path: str) -> Dict:
     conv = get_model_adapter(model_path).get_default_conv_template(model_path)
     roles = {"human": conv.roles[0], "gpt": conv.roles[1]}
     conversations = []
@@ -98,7 +92,6 @@ def preprocess(
     ).input_ids
     targets = input_ids.clone()
 
-    # 仅处理 Llama-3.2 格式（与训练代码一致）
     if 'Llama-3.2-3B-Instruct' in model_path or 'Llama-3.1-8B-Instruct' in model_path:
         sep2 = "<|eot_id|>"
         sep = "<|end_header_id|>"
@@ -130,25 +123,21 @@ def preprocess(
                     target[cur_len: cur_len + 2] = IGNORE_TOKEN_ID
                     cur_len += turn_len + 1
             target[cur_len:] = IGNORE_TOKEN_ID
-            if cur_len < tokenizer.model_max_length:
-                if cur_len != total_len:
-                    target[:] = IGNORE_TOKEN_ID
-                    print(f"WARNING: tokenization mismatch: {cur_len} vs. {total_len}. (ignored)")
+            if cur_len < tokenizer.model_max_length and cur_len != total_len:
+                target[:] = IGNORE_TOKEN_ID
+                print(f"WARNING: tokenization mismatch: {cur_len} vs. {total_len}. (ignored)")
         return dict(
             input_ids=input_ids,
             gpt_unmask=targets,
             attention_mask=input_ids.ne(tokenizer.pad_token_id),
         )
     else:
-        raise NotImplementedError("Only Llama-3.2-3B-Instruct is supported for evaluation script.")
+        raise NotImplementedError("Only Llama-3.2-3B-Instruct is supported.")
 
 
 # ---------- 评估数据集 ----------
 class EvalDataset(Dataset):
     def __init__(self, raw_data, tokenizer, model_path):
-        self.raw_data = raw_data
-        self.tokenizer = tokenizer
-        self.model_path = model_path
         sources = [example["conversations"] for example in raw_data]
         data_dict = preprocess(sources, tokenizer, model_path)
         self.input_ids = data_dict["input_ids"]
@@ -171,8 +160,7 @@ class EvalDataset(Dataset):
 # ---------- 评估函数 ----------
 def evaluate(model, dataloader, device):
     model.eval()
-    all_preds = []
-    all_labels = []
+    all_preds, all_labels = [], []
     with torch.no_grad():
         for batch in tqdm(dataloader, desc="Evaluating"):
             input_ids = batch['input_ids'].to(device)
@@ -180,67 +168,88 @@ def evaluate(model, dataloader, device):
             gpt_unmask = batch['gpt_unmask'].to(device)
             labels = batch['labels'].to(device)
             outputs = model(input_ids=input_ids, attention_mask=attention_mask, gpt_unmask=gpt_unmask)
-            preds = outputs['predictions'].cpu().numpy()
-            labels = labels.cpu().numpy()
-            all_preds.extend(preds)
-            all_labels.extend(labels)
+            all_preds.extend(outputs['predictions'].cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
     all_preds = np.array(all_preds)
     all_labels = np.array(all_labels)
     mse = np.mean((all_preds - all_labels) ** 2)
     mae = np.mean(np.abs(all_preds - all_labels))
     acc = np.mean(np.abs(all_preds - all_labels) <= 0.1)
-    return {
-        'mse': float(mse),
-        'mae': float(mae),
-        'accuracy': float(acc)
-    }
+    return {'mse': float(mse), 'mae': float(mae), 'accuracy': float(acc)}
 
 
 # ---------- 主程序 ----------
 def main():
-    parser = argparse.ArgumentParser(description="Evaluate PRM model on test set")
-    parser.add_argument("--model_dir", type=str, default=p / "records/progress_model_webshop/",
-                        help="Directory containing our_model_state.pt and our_base_model")
-    parser.add_argument("--test_data", type=str, default=p / "exploration/webshop/exploration_outputs/test_prm.json",
-                        help="Path to test data JSON file (each line a JSON object)")
-    parser.add_argument("--batch_size", type=int, default=8, help="Batch size for evaluation")
-    parser.add_argument("--max_length", type=int, default=1024, help="Max sequence length")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--base_model_path", type=str, required=True,
+                        help="ckpt/llama3b_webshop_sft_loramerged）")
+    parser.add_argument("--checkpoint_path", type=str, required=True,
+                        help="records/progress_model_webshop/checkpoint-57465")
+    parser.add_argument("--test_data", type=str, required=True,
+                        help="exploration/webshop/exploration_outputs/test_prm.json")
+    parser.add_argument("--batch_size", type=int, default=8)
+    parser.add_argument("--max_length", type=int, default=1024)
+    parser.add_argument("--lora_r", type=int, default=8)
+    parser.add_argument("--lora_alpha", type=int, default=16)
+    parser.add_argument("--lora_target_modules", type=str, nargs='+', default=["q_proj", "v_proj"])
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    # 加载 tokenizer 和 base model
-    base_model_path = os.path.join(args.model_dir, "checkpoint-57465")
-    print(f"Loading tokenizer and base model from {base_model_path}")
-    tokenizer = AutoTokenizer.from_pretrained(base_model_path, trust_remote_code=True)
+    # 1. 加载 tokenizer 和基础模型（与训练时一致）
+    print(f"Loading tokenizer and base model from {args.base_model_path}")
+    tokenizer = AutoTokenizer.from_pretrained(args.base_model_path, trust_remote_code=True)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = '<|reserved_special_token_0|>'
     tokenizer.model_max_length = args.max_length
-    base_model = AutoModelForCausalLM.from_pretrained(
-        base_model_path, trust_remote_code=True, torch_dtype=torch.bfloat16
-    ).to(device)
 
-    # 创建 PRM 模型并加载训练好的权重
+    base_model = AutoModelForCausalLM.from_pretrained(
+        args.base_model_path, trust_remote_code=True, torch_dtype=torch.bfloat16
+    )
+    # 冻结基础模型（和训练一致）
+    for param in base_model.parameters():
+        param.requires_grad = False
+
+    # 2. 应用 LoRA（配置必须与训练一致）
+    lora_config = LoraConfig(
+        r=args.lora_r,
+        lora_alpha=args.lora_alpha,
+        target_modules=args.lora_target_modules,
+        lora_dropout=0.05,
+        bias="none",
+        task_type="CAUSAL_LM"
+    )
+    lora_model = get_peft_model(base_model, lora_config).to(torch.bfloat16)
+
+    # 3. 构建 PRM 模型
     vocab_size = base_model.config.vocab_size
-    model = prm_model(base_model, vocab_size)
-    state_dict_path = os.path.join(args.model_dir, "our_model_state.pt")
-    print(f"Loading model state from {state_dict_path}")
-    state_dict = torch.load(state_dict_path, map_location="cpu")['model_state_dict']
-    model.load_state_dict(state_dict)
+    model = prm_model(lora_model, vocab_size)
+
+    # 4. 从 checkpoint 加载训练好的权重
+    state_dict_path = os.path.join(args.checkpoint_path, "pytorch_model.bin")
+    if not os.path.exists(state_dict_path):
+        # 可能保存为 model.safetensors，尝试另一种格式
+        state_dict_path = os.path.join(args.checkpoint_path, "model.safetensors")
+        if not os.path.exists(state_dict_path):
+            raise FileNotFoundError(f"找不到 checkpoint 权重文件，请检查 {args.checkpoint_path}")
+    print(f"Loading model weights from {state_dict_path}")
+    state_dict = torch.load(state_dict_path, map_location="cpu")
+    # 如果 state_dict 是 dict 包含 'model' 键，则取它（Trainer 有时会包装）
+    if 'model' in state_dict:
+        state_dict = state_dict['model']
+    model.load_state_dict(state_dict, strict=True)
     model = model.to(device)
 
-    # 加载测试数据
+    # 5. 加载测试数据
     print(f"Loading test data from {args.test_data}")
     with open(args.test_data, 'r', encoding='utf-8') as f:
         test_data = [json.loads(line) for line in f]
 
-    # 创建数据集和 DataLoader
-    print("Preprocessing test data...")
     eval_dataset = EvalDataset(test_data, tokenizer, model_path="Llama-3.2-3B-Instruct")
     dataloader = DataLoader(eval_dataset, batch_size=args.batch_size, shuffle=False)
 
-    # 执行评估
+    # 6. 评估
     print("Starting evaluation...")
     metrics = evaluate(model, dataloader, device)
     print("\nEvaluation results:")
