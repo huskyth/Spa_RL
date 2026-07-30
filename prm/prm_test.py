@@ -274,7 +274,14 @@ def main():
     # 5. 加载测试数据
     print(f"Loading test data from {args.test_data}")
     with open(args.test_data, 'r', encoding='utf-8') as f:
-        test_data = [json.loads(line) for line in f]
+        data = json.load(f)  # 直接加载整个文件
+        # 如果 data 是列表，则直接使用；否则按原来逻辑
+        if isinstance(data, list):
+            test_data = data
+        else:
+            # 如果不是列表，可能还是 JSON Lines，可以回退
+            f.seek(0)
+            test_data = [json.loads(line) for line in f if line.strip()]
 
     eval_dataset = EvalDataset(test_data, tokenizer, model_path="Llama-3.2-3B-Instruct")
     dataloader = DataLoader(eval_dataset, batch_size=args.batch_size, shuffle=False)
