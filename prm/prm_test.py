@@ -168,7 +168,7 @@ def evaluate(model, dataloader, device):
             gpt_unmask = batch['gpt_unmask'].to(device)
             labels = batch['labels'].to(device)
             outputs = model(input_ids=input_ids, attention_mask=attention_mask, gpt_unmask=gpt_unmask)
-            all_preds.extend(outputs['predictions'].cpu().numpy())
+            all_preds.extend(outputs['predictions'].float().cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
     all_preds = np.array(all_preds)
     all_labels = np.array(all_labels)
