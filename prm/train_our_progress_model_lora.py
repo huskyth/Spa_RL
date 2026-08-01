@@ -446,7 +446,7 @@ print(f"可训练参数数量: {len(trainable_params)}")
 print("Configuring training parameters...")
 training_args = TrainingArguments(
     output_dir="./records/progress_model_webshop",
-    num_train_epochs=15,
+    num_train_epochs=25,
     per_device_train_batch_size=1,
     per_device_eval_batch_size=1,
     warmup_steps=50,
