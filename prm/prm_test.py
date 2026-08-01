@@ -212,8 +212,19 @@ def load_sharded_state_dict(checkpoint_dir):
             state_dict.update(shard)
         return state_dict
 
-    raise FileNotFoundError(f"在 {checkpoint_dir} 中找不到任何权重文件")
+    # 新增：兼容 .pt 文件
+    pt_files = glob.glob(os.path.join(checkpoint_dir, "*.pt"))
+    if pt_files:
+        # 优先加载常见命名
+        preferred = [os.path.join(checkpoint_dir, "model.pt"),
+                     os.path.join(checkpoint_dir, "pytorch_model.pt")]
+        for f in preferred:
+            if os.path.exists(f):
+                return torch.load(f, map_location="cpu")
+        # 否则取第一个 .pt 文件
+        return torch.load(pt_files[0], map_location="cpu")
 
+    raise FileNotFoundError(f"在 {checkpoint_dir} 中找不到任何权重文件")
 
 # ---------- 主程序 ----------
 def main():
@@ -297,4 +308,4 @@ def main():
 if __name__ == "__main__":
     main()
 
-# python prm/prm_test.py --base_model_path ckpt/llama3b_webshop_sft_loramerged --checkpoint_path records/progress_model_webshop/checkpoint-57465 --test_data exploration/webshop/exploration_outputs/test_prm.json --batch_size 4
+# python prm/prm_test.py --base_model_path ckpt/llama3b_webshop_sft_loramerged --checkpoint_path ckpt/llama3b_webshop_prm --test_data exploration/webshop/exploration_outputs/test_prm.json --batch_size 4
