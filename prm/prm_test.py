@@ -230,14 +230,16 @@ def load_sharded_state_dict(checkpoint_dir):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--base_model_path", type=str, required=True,
-                        help="备用基础模型路径（当 checkpoint 中没有 our_base_model 时使用）")
+                        help="路径：原始 SFT 后的模型（如 ckpt/llama3b_webshop_sft_loramerged）")
     parser.add_argument("--checkpoint_path", type=str, required=True,
-                        help="训练保存的 checkpoint 目录（必须包含 our_base_model 和 our_model_state.pt）")
+                        help="训练保存的 checkpoint 目录（如 records/progress_model_webshop/checkpoint-57465）")
     parser.add_argument("--test_data", type=str, required=True,
                         help="测试数据 JSON 文件路径")
     parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--max_length", type=int, default=1024)
-    # 移除了 LoRA 相关参数，因为已不需要
+    parser.add_argument("--lora_r", type=int, default=8)
+    parser.add_argument("--lora_alpha", type=int, default=16)
+    parser.add_argument("--lora_target_modules", type=str, nargs='+', default=["q_proj", "v_proj"])
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -289,6 +291,28 @@ def main():
 
     # 6. 加载测试数据（以下保持不变）
     # ...
+
+    # 5. 加载测试数据
+    print(f"Loading test data from {args.test_data}")
+    with open(args.test_data, 'r', encoding='utf-8') as f:
+        data = json.load(f)  # 直接加载整个文件
+        # 如果 data 是列表，则直接使用；否则按原来逻辑
+        if isinstance(data, list):
+            test_data = data
+        else:
+            # 如果不是列表，可能还是 JSON Lines，可以回退
+            f.seek(0)
+            test_data = [json.loads(line) for line in f if line.strip()]
+
+    eval_dataset = EvalDataset(test_data, tokenizer, model_path="Llama-3.2-3B-Instruct")
+    dataloader = DataLoader(eval_dataset, batch_size=args.batch_size, shuffle=False)
+
+    # 6. 评估
+    print("Starting evaluation...")
+    metrics = evaluate(model, dataloader, device)
+    print("\nEvaluation results:")
+    for k, v in metrics.items():
+        print(f"{k}: {v:.6f}")
 
 
 if __name__ == "__main__":
