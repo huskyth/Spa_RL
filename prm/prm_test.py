@@ -277,8 +277,12 @@ def main():
     print(f"Loading model weights from {args.checkpoint_path}")
     state_dict = load_sharded_state_dict(args.checkpoint_path)
     # 如果 state_dict 包含 'model' 键，则取它（Trainer 有时会包装）
-    if 'model' in state_dict:
+    # 处理嵌套情况
+    if 'model_state_dict' in state_dict:
+        state_dict = state_dict['model_state_dict']
+    elif 'model' in state_dict:  # 已有的兼容
         state_dict = state_dict['model']
+    # 还可能存在其他键名，可根据实际打印 keys 调整
     model.load_state_dict(state_dict, strict=True)
     model = model.to(device)
 
