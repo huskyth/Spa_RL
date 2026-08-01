@@ -481,7 +481,7 @@ trainer = Trainer(
 
 # Start training
 print("Starting training...")
-trainer.train()
+trainer.train(resume_from_checkpoint='records/progress_model_webshop/checkpoint-57465')
 
 
 # Save model
