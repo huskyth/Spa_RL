@@ -3,7 +3,7 @@ from peft import PeftModel
 import torch
 
 base_model_path = "ckpt/llama3b_webshop_sft_loramerged"
-lora_model_path = "ckpt/steptool_llama3-11759499040/epoch-4"
+lora_model_path = "ckpt/steptool_llama3-11785575020/epoch-4"
 merged_model_path = "./ckpt/llama3b_webshop_rl_loramerged"
 
 # 加载基础模型
