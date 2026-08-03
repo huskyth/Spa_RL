@@ -113,10 +113,6 @@ class WebAgentTextEnv(gym.Env):
             status = self.browser.click(action_arg, self.text_to_clickable)
         else:
             status = dict(reward=0, done=False)
-
-        lin = '-' * 120
-        print(
-            f" {lin} \n action = {action}, action_arg = {action_arg}, self.text_to_clickable = {self.text_to_clickable}, status = {status} \n{lin}")
         # Update observation, state with the new action
         ob = self.observation
         text_list = [ob]
