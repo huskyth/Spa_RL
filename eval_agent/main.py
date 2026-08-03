@@ -48,7 +48,7 @@ def interactive_loop(
             # color the action in green
             # logger.info(f"\nLM Agent Action:\n\033[92m{action.value}\033[0m")
             logger.info(
-                f"\n{Fore.GREEN}{llm_output}{Fore.RESET}\n"
+                f"\n{Fore.GREEN}####{llm_output}####, {len(llm_output)}, {Fore.RESET}\n"
             )
         except Exception as e:
             logger.info(f"Agent failed with error: {e}")
