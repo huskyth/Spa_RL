@@ -102,6 +102,7 @@ class WebAgentTextEnv(gym.Env):
         action_name, action_arg = parse_action(action)
         if action_arg is not None:
             action_arg = action_arg.lower()
+
         if (action_name == 'search' and 
             action_arg is not None and 
             action_arg != ''):
@@ -110,11 +111,12 @@ class WebAgentTextEnv(gym.Env):
               action_arg in self.text_to_clickable.keys() and 
               action_arg != 'search'):
             status = self.browser.click(action_arg, self.text_to_clickable)
-            lin = '-' * 120
-            print(f" {lin} \n action_arg = {action_arg}, self.text_to_clickable = {self.text_to_clickable}, status = {status} \n{lin}")
         else:
             status = dict(reward=0, done=False)
 
+        lin = '-' * 120
+        print(
+            f" {lin} \n action = {action}, action_arg = {action_arg}, self.text_to_clickable = {self.text_to_clickable}, status = {status} \n{lin}")
         # Update observation, state with the new action
         ob = self.observation
         text_list = [ob]
