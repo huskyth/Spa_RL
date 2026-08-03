@@ -23,7 +23,7 @@ def interactive_loop(
     env_config: Dict[str, Any],
 ) -> State:
     temp = agent([{"role": "user","content": "你好"}])
-    print(temp)
+    print(f'temp = ****{temp}###, {len(temp)}')
     assert False
 
 
