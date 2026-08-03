@@ -110,7 +110,8 @@ class WebAgentTextEnv(gym.Env):
               action_arg in self.text_to_clickable.keys() and 
               action_arg != 'search'):
             status = self.browser.click(action_arg, self.text_to_clickable)
-            print(f"action_arg = {action_arg}, self.text_to_clickable = {self.text_to_clickable}, status = {status}")
+            lin = '-' * 120
+            print(f" {lin} \n action_arg = {action_arg}, self.text_to_clickable = {self.text_to_clickable}, status = {status} \n{lin}")
         else:
             status = dict(reward=0, done=False)
 
