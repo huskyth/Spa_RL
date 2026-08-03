@@ -43,6 +43,7 @@ class WebShopEnv(BaseEnv):
         try:
             action = self.parse_action(llm_output)
         except:
+            logger.info(f"parse_action failure, llm_output = {llm_output}  ******")
             observation = f"Observation: Invalid format. The input must contains 'Action: '"
             self.state.history.append({
                 "role": "user",
