@@ -22,6 +22,11 @@ def interactive_loop(
     agent: agents.LMAgent,
     env_config: Dict[str, Any],
 ) -> State:
+    temp = agent([{"role": "user","content": "你好"}])
+    print(temp)
+    assert False
+
+
     logger.info(f"Loading environment: {env_config['env_class']}")
     env: envs.BaseEnv = getattr(envs, env_config["env_class"])(task, **env_config)
     # reset the environment and set the prompt
