@@ -161,7 +161,7 @@ def main(args: argparse.Namespace):
         pbar = tqdm(total=n_todo_tasks)
         for i, task in enumerate(all_tasks):
             # Only test 10 tasks in debug mode
-            if args.debug and i == 5:
+            if args.debug and i == 1:
                 break
 
             # skip done tasks

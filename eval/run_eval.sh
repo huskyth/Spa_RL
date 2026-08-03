@@ -5,4 +5,5 @@ python -m eval_agent.main \
     --exp_config webshop \
     --split test \
     --override \
-    --output_path eval/webshop_eval
+    --output_path eval/webshop_eval \
+    --debug
