@@ -1,7 +1,7 @@
 {
     "agent_class": "FastChatAgent",
     "config": {
-        "controller_address": "http://localhost:21001",
+        "controller_address": "http://localhost:21012",
         "model_name": "llama3b_webshop_rl_loramerged",
         "max_new_tokens": 512,
         "temperature": 0
