@@ -58,6 +58,7 @@ class WebShopEnv(BaseEnv):
                 self.state.reward = 0
             return observation, self.state
         try:
+            logger.info(f"enter step llm_output = {llm_output}  \n --- action = {action}")
             observation, reward, done, info = self.env.step(action=action)
             observation = f"Observation:\n{observation}"
             # available_actions = self.env.get_available_actions()
