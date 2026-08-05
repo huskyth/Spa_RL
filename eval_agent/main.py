@@ -223,13 +223,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--part_num",
         type=int,
-        default=10,
+        default=1,
         help="Evaluation part.",
     )
     parser.add_argument(
         "--part_idx",
         type=int,
-        default=0,
+        default=-1,
         help="Evaluation part.",
     )
     parser.add_argument(

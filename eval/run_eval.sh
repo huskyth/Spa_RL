@@ -6,4 +6,3 @@ python -m eval_agent.main \
     --split test \
     --override \
     --output_path eval/webshop_eval \
-    --debug
